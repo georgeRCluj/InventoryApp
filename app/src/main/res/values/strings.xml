@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Inventory App</string>
+    <string name="action_insert_dummy_product">Insert Dummy Product</string>
+    <string name="action_delete_all_entries">Delete All Products</string>
+    <string name="editor_activity_title_new_product">Add a Product</string>
+    <string name="action_save">Save</string>
+    <string name="editor_update_product_successful">Product updated</string>
+    <string name="editor_update_product_failed">Error with updating product</string>
+    <string name="editor_update_negative_quantity">The quantity cannot be negative</string>
+    <string name="unsaved_changes_dialog_msg">Discard your changes and quit editing?</string>
+    <string name="discard">Discard</string>
+    <string name="keep_editing">Keep Editing</string>
+    <string name="action_delete">Delete</string>
+    <string name="category_overview">Overview</string>
+    <string name="product_price">Price</string>
+    <string name="product_supplier">Supplier</string>
+    <string name="product_image">Image</string>
+    <string name="hint_product_name">Product name</string>
+    <string name="hint_product_quantity">Current quantity</string>
+    <string name="hint_product_price">Current price</string>
+    <string name="hint_product_supplier">Product supplier</string>
+    <string name="hint_product_image">Select product image</string>
+    <string name="unit_product_dollars">$</string>
+    <string name="unit_product_weight">kg</string>
+    <string name="editor_insert_product_successful">Product saved</string>
+    <string name="editor_insert_product_failed">Error with saving product</string>
+    <string name="empty_view_title_text">The inventory is empty</string>
+    <string name="empty_view_subtitle_text">Get started by adding a product</string>
+    <string name="editor_delete_product_successful">Product deleted</string>
+    <string name="editor_delete_product_failed">Error with deleting product</string>
+    <string name="delete_dialog_msg">Delete this product?</string>
+    <string name="delete">Delete</string>
+    <string name="cancel">Cancel</string>
+    <string name="saleButton">Sale</string>
+</resources>
