@@ -53,7 +53,8 @@ public class ProductDetailsActivity extends AppCompatActivity implements LoaderM
     private Button quantitySubtractButton;
     private Button orderMoreButton;
     private ImageView productImageContainer;
-    private byte[] imageDbByteFormat;
+    private byte[] imageDbByteAlreadySaved;
+    private byte[] imageDbByteToSave;
     public static final int PHOTO_MY_GALLERY_INTENT_CODE = 5;
     private Uri pickedImage;
     private String[] PERMISSIONS = {Manifest.permission.WRITE_EXTERNAL_STORAGE, Manifest.permission.READ_EXTERNAL_STORAGE};
@@ -249,8 +250,7 @@ public class ProductDetailsActivity extends AppCompatActivity implements LoaderM
 
             productImageContainer.setVisibility(View.VISIBLE);
             productImageContainer.setImageBitmap(resizedBitmap);
-
-            imageDbByteFormat = getBitmapAsByteArray(resizedBitmap);
+            imageDbByteToSave = getBitmapAsByteArray(resizedBitmap);
         } catch (IOException e) {
             e.printStackTrace();
         }
@@ -289,7 +289,7 @@ public class ProductDetailsActivity extends AppCompatActivity implements LoaderM
         String supplierString = mSupplierEditText.getText().toString().trim();
 
         if (nameString.isEmpty() || quantityString.isEmpty() || priceString.isEmpty()
-                || supplierString.isEmpty() || imageDbByteFormat == null) {
+                || supplierString.isEmpty() || imageDbByteAlreadySaved == null) {
             Toast.makeText(this, getResources().getString(R.string.fieldsUncompleted), Toast.LENGTH_LONG).show();
             return;
         } else if (!hasEmailPattern(supplierString)) {
@@ -302,7 +302,7 @@ public class ProductDetailsActivity extends AppCompatActivity implements LoaderM
         values.put(ProductEntry.COLUMN_PRODUCT_QUANTITY, quantityString);
         values.put(ProductEntry.COLUMN_PRODUCT_PRICE, priceString);
         values.put(ProductEntry.COLUMN_PRODUCT_SUPPLIER, supplierString);
-        values.put(ProductEntry.COLUMN_PRODUCT_IMAGE, imageDbByteFormat);
+        values.put(ProductEntry.COLUMN_PRODUCT_IMAGE, imageDbByteToSave);
 
         if (mCurrentProductUri == null) {
             Uri newUri = getContentResolver().insert(ProductEntry.CONTENT_URI, values);
@@ -459,14 +459,14 @@ public class ProductDetailsActivity extends AppCompatActivity implements LoaderM
             int quantity = cursor.getInt(quantityColumnIndex);
             int price = cursor.getInt(priceColumnIndex);
             String supplier = cursor.getString(supplierColumnIndex);
-            imageDbByteFormat = cursor.getBlob(imageColumnIndex);
+            imageDbByteAlreadySaved = cursor.getBlob(imageColumnIndex);
 
             // Update the views on the screen with the values from the database
             mNameEditText.setText(name);
             mQuantityEditText.setText(quantity + "");
             mPriceEditText.setText(price + "");
             mSupplierEditText.setText(supplier);
-            productImageContainer.setImageBitmap(getImageFromByteToBitmap(imageDbByteFormat));
+            productImageContainer.setImageBitmap(getImageFromByteToBitmap(imageDbByteAlreadySaved));
         }
     }
 
