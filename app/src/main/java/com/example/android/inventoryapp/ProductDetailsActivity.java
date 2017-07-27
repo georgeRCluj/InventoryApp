@@ -1,22 +1,28 @@
 package com.example.android.inventoryapp;
 
+import android.Manifest;
 import android.app.Activity;
 import android.app.AlertDialog;
 import android.app.LoaderManager;
 import android.content.ContentValues;
+import android.content.Context;
 import android.content.CursorLoader;
 import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.Loader;
+import android.content.pm.PackageManager;
 import android.database.Cursor;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.net.Uri;
+import android.os.Build;
 import android.os.Bundle;
 import android.provider.MediaStore;
+import android.support.annotation.NonNull;
+import android.support.v4.app.ActivityCompat;
 import android.support.v4.app.NavUtils;
+import android.support.v4.content.ContextCompat;
 import android.support.v7.app.AppCompatActivity;
-import android.text.TextUtils;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.MotionEvent;
@@ -47,9 +53,11 @@ public class ProductDetailsActivity extends AppCompatActivity implements LoaderM
     private Button quantitySubtractButton;
     private Button orderMoreButton;
     private ImageView productImageContainer;
-    private byte[] imageForDbSave;
+    private byte[] imageDbByteFormat;
     public static final int PHOTO_MY_GALLERY_INTENT_CODE = 5;
     private Uri pickedImage;
+    private String[] PERMISSIONS = {Manifest.permission.WRITE_EXTERNAL_STORAGE, Manifest.permission.READ_EXTERNAL_STORAGE};
+    private final int MY_PERMISSIONS_DATA_STORAGE = 100;
     private View.OnTouchListener mTouchListener = new View.OnTouchListener() {
         @Override
         public boolean onTouch(View view, MotionEvent motionEvent) {
@@ -104,7 +112,7 @@ public class ProductDetailsActivity extends AppCompatActivity implements LoaderM
         selectProductImageButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                startMyGalleryActivity();
+                requestStorageRunTimePermissionsAndOpenMyGallery();
             }
         });
 
@@ -158,39 +166,103 @@ public class ProductDetailsActivity extends AppCompatActivity implements LoaderM
         startActivityForResult(myGalleryIntent, PHOTO_MY_GALLERY_INTENT_CODE);
     }
 
+    private void requestStorageRunTimePermissionsAndOpenMyGallery() {
+        if (android.os.Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+            if (!hasPermissions(this, PERMISSIONS)) {
+                // Should we show an explanation? (this dialog will be shown if there was a previous denial from the user
+                if (ActivityCompat.shouldShowRequestPermissionRationale(this, Manifest.permission.READ_EXTERNAL_STORAGE) ||
+                        ActivityCompat.shouldShowRequestPermissionRationale(this, Manifest.permission.WRITE_EXTERNAL_STORAGE)) {
+                    // Show an explanation to the user *asynchronously* -- don't block this thread waiting for the user's response! After the user
+                    // sees the explanation, try again to request the permission.
+                    new AlertDialog.Builder(this)
+                            .setTitle(getResources().getString(R.string.storage_permission_needed))
+                            .setMessage(getResources().getString(R.string.storage_permission_message))
+                            .setPositiveButton(getResources().getString(R.string.storage_permission_ok), new DialogInterface.OnClickListener() {
+                                @Override
+                                public void onClick(DialogInterface dialogInterface, int i) {
+                                    //Prompt the user once explanation has been shown
+                                    ActivityCompat.requestPermissions(ProductDetailsActivity.this, PERMISSIONS, MY_PERMISSIONS_DATA_STORAGE);
+                                }
+                            })
+                            .create()
+                            .show();
+                } else {
+                    // No explanation needed, we can request the permission.
+                    ActivityCompat.requestPermissions(ProductDetailsActivity.this, PERMISSIONS, MY_PERMISSIONS_DATA_STORAGE);
+                }
+            } else {
+                // if the sdk >=23, and the permission has been previously granted, then start the app
+                startMyGalleryActivity();
+            }
+        } else {
+            // if the sdk <23, then the permission is granted by default (at installation time); deviceToken is checked and Main Activity is started;
+            startMyGalleryActivity();
+        }
+    }
+
+    private boolean hasPermissions(Context context, String... permissions) {
+        if (android.os.Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+            for (String permission : permissions) {
+                if (ActivityCompat.checkSelfPermission(context, permission) != PackageManager.PERMISSION_GRANTED) {
+                    return false;
+                }
+            }
+        }
+        return true;
+    }
+
     @Override
     public void onActivityResult(int requestCode, int resultCode, Intent data) {
         super.onActivityResult(requestCode, resultCode, data);
         if (requestCode == PHOTO_MY_GALLERY_INTENT_CODE && resultCode == Activity.RESULT_OK) {
             pickedImage = data.getData();
             if (pickedImage != null) {
-                showImageOnTheScreen();
-                prepareImageFormatForSavingIntoDatabase();
+                resizeImageShowOnScreenAndPrepareSavingIntoDatabase();
             }
         }
     }
 
-    private void showImageOnTheScreen() {
-        productImageContainer.setVisibility(View.VISIBLE);
-
-        String[] filePathColumn = {MediaStore.Images.Media.DATA};
-        Cursor cursor = getContentResolver().query(pickedImage, filePathColumn, null, null, null);
-        cursor.moveToFirst();
-
-        int columnIndex = cursor.getColumnIndex(filePathColumn[0]);
-        String picturePath = cursor.getString(columnIndex);
-        cursor.close();
-        productImageContainer.setImageBitmap(BitmapFactory.decodeFile(picturePath));
+    @Override
+    public void onRequestPermissionsResult(int requestCode, @NonNull String permissions[], @NonNull int[] grantResults) {
+        switch (requestCode) {
+            case MY_PERMISSIONS_DATA_STORAGE: {
+                // If request is cancelled, the result arrays are empty.
+                if (grantResults.length > 0 && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
+                    // permission was granted
+                    if ((ContextCompat.checkSelfPermission(this, Manifest.permission.READ_EXTERNAL_STORAGE) == PackageManager.PERMISSION_GRANTED) &&
+                            (ContextCompat.checkSelfPermission(this, Manifest.permission.READ_EXTERNAL_STORAGE) == PackageManager.PERMISSION_GRANTED)) {
+                        startMyGalleryActivity();
+                    }
+                } else {
+                    // permission denied
+                    Toast.makeText(this, getResources().getString(R.string.storage_permission_message), Toast.LENGTH_SHORT).show();
+                }
+            }
+        }
     }
 
-    private void prepareImageFormatForSavingIntoDatabase() {
-        Bitmap bitmap;
+    private void resizeImageShowOnScreenAndPrepareSavingIntoDatabase() {
+        Bitmap originalBitmap;
         try {
-            bitmap = MediaStore.Images.Media.getBitmap(getContentResolver(), pickedImage);
-            imageForDbSave = getBitmapAsByteArray(bitmap);
+            originalBitmap = MediaStore.Images.Media.getBitmap(getContentResolver(), pickedImage);
+            Bitmap resizedBitmap = resizeBitmap(originalBitmap, 350, 350, false);
+
+            productImageContainer.setVisibility(View.VISIBLE);
+            productImageContainer.setImageBitmap(resizedBitmap);
+
+            imageDbByteFormat = getBitmapAsByteArray(resizedBitmap);
         } catch (IOException e) {
             e.printStackTrace();
         }
+    }
+
+    private Bitmap resizeBitmap(Bitmap originalBitmap, int width, int height, boolean filters) {
+        ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
+        originalBitmap.compress(Bitmap.CompressFormat.PNG, 0, outputStream);
+        byte[] byteImage = outputStream.toByteArray();
+        Bitmap decodedBitmap = BitmapFactory.decodeByteArray(byteImage, 0, byteImage.length);
+        Bitmap finalBitmap = Bitmap.createScaledBitmap(decodedBitmap, width, height, filters);
+        return finalBitmap;
     }
 
     private byte[] getBitmapAsByteArray(Bitmap bitmap) {
@@ -217,7 +289,7 @@ public class ProductDetailsActivity extends AppCompatActivity implements LoaderM
         String supplierString = mSupplierEditText.getText().toString().trim();
 
         if (nameString.isEmpty() || quantityString.isEmpty() || priceString.isEmpty()
-                || supplierString.isEmpty() || imageForDbSave == null) {
+                || supplierString.isEmpty() || imageDbByteFormat == null) {
             Toast.makeText(this, getResources().getString(R.string.fieldsUncompleted), Toast.LENGTH_LONG).show();
             return;
         } else if (!hasEmailPattern(supplierString)) {
@@ -230,7 +302,7 @@ public class ProductDetailsActivity extends AppCompatActivity implements LoaderM
         values.put(ProductEntry.COLUMN_PRODUCT_QUANTITY, quantityString);
         values.put(ProductEntry.COLUMN_PRODUCT_PRICE, priceString);
         values.put(ProductEntry.COLUMN_PRODUCT_SUPPLIER, supplierString);
-        values.put(ProductEntry.COLUMN_PRODUCT_IMAGE, imageForDbSave);
+        values.put(ProductEntry.COLUMN_PRODUCT_IMAGE, imageDbByteFormat);
 
         if (mCurrentProductUri == null) {
             Uri newUri = getContentResolver().insert(ProductEntry.CONTENT_URI, values);
@@ -334,13 +406,7 @@ public class ProductDetailsActivity extends AppCompatActivity implements LoaderM
                 deleteProduct();
             }
         });
-        builder.setNegativeButton(R.string.cancel, new DialogInterface.OnClickListener() {
-            public void onClick(DialogInterface dialog, int id) {
-                if (dialog != null) {
-                    dialog.dismiss();
-                }
-            }
-        });
+        builder.setNegativeButton(R.string.cancel, null);
 
         AlertDialog alertDialog = builder.create();
         alertDialog.show();
@@ -365,11 +431,8 @@ public class ProductDetailsActivity extends AppCompatActivity implements LoaderM
                 ProductEntry.COLUMN_PRODUCT_NAME,
                 ProductEntry.COLUMN_PRODUCT_QUANTITY,
                 ProductEntry.COLUMN_PRODUCT_PRICE,
-                ProductEntry.COLUMN_PRODUCT_SUPPLIER};
-        //TODO: have an unexplained error when trying to load the image saved, below line is related
-        //TODO: error message - "Failed to read row 0, column 0 from a CursorWindow which has 0 rows, 6 columns."
-        //TODO: "Make sure the Cursor is initialized correctly before accessing data from it."
-        //ProductEntry.COLUMN_PRODUCT_IMAGE};
+                ProductEntry.COLUMN_PRODUCT_SUPPLIER,
+                ProductEntry.COLUMN_PRODUCT_IMAGE};
 
         return new CursorLoader(this,   // Parent activity context
                 mCurrentProductUri,     // Query the content URI for the current product
@@ -390,35 +453,23 @@ public class ProductDetailsActivity extends AppCompatActivity implements LoaderM
             int quantityColumnIndex = cursor.getColumnIndex(ProductEntry.COLUMN_PRODUCT_QUANTITY);
             int priceColumnIndex = cursor.getColumnIndex(ProductEntry.COLUMN_PRODUCT_PRICE);
             int supplierColumnIndex = cursor.getColumnIndex(ProductEntry.COLUMN_PRODUCT_SUPPLIER);
-            //TODO: have an unexplained error when trying to load the image saved, below line is related
-            //TODO: error message - "Failed to read row 0, column 0 from a CursorWindow which has 0 rows, 6 columns."
-            //TODO: "Make sure the Cursor is initialized correctly before accessing data from it."
-            // int imageColumnIndex = cursor.getColumnIndex(ProductEntry.COLUMN_PRODUCT_IMAGE);
+            int imageColumnIndex = cursor.getColumnIndex(ProductEntry.COLUMN_PRODUCT_IMAGE);
 
             String name = cursor.getString(nameColumnIndex);
             int quantity = cursor.getInt(quantityColumnIndex);
             int price = cursor.getInt(priceColumnIndex);
             String supplier = cursor.getString(supplierColumnIndex);
-            //TODO: have an unexplained error when trying to load the image saved, below line is related
-            //TODO: error message - "Failed to read row 0, column 0 from a CursorWindow which has 0 rows, 6 columns."
-            //TODO: "Make sure the Cursor is initialized correctly before accessing data from it."
-            //byte[] imageByteFormat = cursor.getBlob(imageColumnIndex);
+            imageDbByteFormat = cursor.getBlob(imageColumnIndex);
 
             // Update the views on the screen with the values from the database
             mNameEditText.setText(name);
             mQuantityEditText.setText(quantity + "");
             mPriceEditText.setText(price + "");
             mSupplierEditText.setText(supplier);
-            //TODO: have an unexplained error when trying to load the image saved, below line is related
-            //TODO: error message - "Failed to read row 0, column 0 from a CursorWindow which has 0 rows, 6 columns."
-            //TODO: "Make sure the Cursor is initialized correctly before accessing data from it."
-            // productImageContainer.setImageBitmap(getImageFromByteToBitmap(imageByteFormat));
+            productImageContainer.setImageBitmap(getImageFromByteToBitmap(imageDbByteFormat));
         }
     }
 
-    //TODO: have an unexplained error when trying to load the image saved, below method is related
-    //TODO: error message - "Failed to read row 0, column 0 from a CursorWindow which has 0 rows, 6 columns."
-    //TODO: "Make sure the Cursor is initialized correctly before accessing data from it."
     private Bitmap getImageFromByteToBitmap(byte[] image) {
         return BitmapFactory.decodeByteArray(image, 0, image.length);
     }

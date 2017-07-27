@@ -39,4 +39,9 @@
     <string name="validEmailAdressMessage">Please enter a valid supplier\'s email address</string>
     <string name="editProduct">Edit prduct</string>
     <string name="addProduct">Add product</string>
+
+    <!-- STORAGE PERMISSIONS TEXTS -->
+    <string name="storage_permission_needed">Storage Permission Needed</string>
+    <string name="storage_permission_message">This app needs the Storage permission, please accept to use storage functionality</string>
+    <string name="storage_permission_ok">I agree</string>
 </resources>
