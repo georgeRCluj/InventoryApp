@@ -1,18 +1,3 @@
-/*
- * Copyright (C) 2016 The Android Open Source Project
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *      http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- */
 package com.example.android.inventoryapp;
 
 import android.app.Activity;
@@ -45,6 +30,8 @@ import com.example.android.inventoryapp.Data.ProductContract.ProductEntry;
 
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 public class ProductDetailsActivity extends AppCompatActivity implements LoaderManager.LoaderCallbacks<Cursor> {
 
@@ -56,6 +43,9 @@ public class ProductDetailsActivity extends AppCompatActivity implements LoaderM
     private Uri mCurrentProductUri;
     private boolean mProductHasChanged = false;
     private Button selectProductImageButton;
+    private Button quantityAddButton;
+    private Button quantitySubtractButton;
+    private Button orderMoreButton;
     private ImageView productImageContainer;
     private byte[] imageForDbSave;
     public static final int PHOTO_MY_GALLERY_INTENT_CODE = 5;
@@ -89,12 +79,18 @@ public class ProductDetailsActivity extends AppCompatActivity implements LoaderM
         mSupplierEditText = (EditText) findViewById(R.id.edit_product_supplier);
         selectProductImageButton = (Button) findViewById(R.id.selectImageButtonId);
         productImageContainer = (ImageView) findViewById(R.id.productImageId);
+        quantityAddButton = (Button) findViewById(R.id.quantity_add_buttonId);
+        quantitySubtractButton = (Button) findViewById(R.id.quantity_subtract_buttonId);
+        orderMoreButton = (Button) findViewById(R.id.order_moreButtonId);
 
         if (mCurrentProductUri != null) {
-            setTitle("Edit Product");
+            setTitle(getResources().getString(R.string.editProduct));
             getLoaderManager().initLoader(EXISTING_PET_LOADER, null, this);
         } else {
-            setTitle("Add a Product");
+            setTitle(getResources().getString(R.string.addProduct));
+            quantitySubtractButton.setVisibility(View.GONE);
+            quantityAddButton.setVisibility(View.GONE);
+            orderMoreButton.setVisibility(View.GONE);
             invalidateOptionsMenu();
         }
     }
@@ -111,6 +107,50 @@ public class ProductDetailsActivity extends AppCompatActivity implements LoaderM
                 startMyGalleryActivity();
             }
         });
+
+        quantityAddButton.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                addOrSubtractQuantity("add");
+            }
+        });
+
+        quantitySubtractButton.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                addOrSubtractQuantity("subtract");
+            }
+        });
+
+        orderMoreButton.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                Intent emailIntent = new Intent(Intent.ACTION_SENDTO, Uri.fromParts("mailto", mSupplierEditText.getText().toString().trim(), null));
+                emailIntent.putExtra(Intent.EXTRA_SUBJECT, getResources().getString(R.string.orderEmailSubject));
+                emailIntent.putExtra(Intent.EXTRA_TEXT, getResources().getString(R.string.orderEmailBody));
+                startActivity(Intent.createChooser(emailIntent, "Send email..."));
+            }
+        });
+    }
+
+    private void addOrSubtractQuantity(String addOrSubtract) {
+        int quantityInt = Integer.parseInt(mQuantityEditText.getText().toString().trim());
+        if (addOrSubtract.equals("add")) {
+            quantityInt++;
+        } else {
+            if (quantityInt > 0) {
+                quantityInt--;
+            } else {
+                Toast.makeText(getApplicationContext(), getString(R.string.editor_update_negative_quantity), Toast.LENGTH_SHORT).show();
+            }
+        }
+        final ContentValues values = new ContentValues();
+        values.put(ProductEntry.COLUMN_PRODUCT_QUANTITY, quantityInt);
+        int rowsAffected = getContentResolver().update(mCurrentProductUri, values, null, null);
+        if (rowsAffected == 0) {
+            Toast.makeText(getApplicationContext(), getString(R.string.editor_update_product_failed), Toast.LENGTH_SHORT).show();
+        }
+        mQuantityEditText.setText(quantityInt + "");
     }
 
     private void startMyGalleryActivity() {
@@ -176,9 +216,12 @@ public class ProductDetailsActivity extends AppCompatActivity implements LoaderM
         String priceString = mPriceEditText.getText().toString().trim();
         String supplierString = mSupplierEditText.getText().toString().trim();
 
-        if (mCurrentProductUri == null &&
-                TextUtils.isEmpty(nameString) && TextUtils.isEmpty(quantityString) &&
-                TextUtils.isEmpty(priceString) && TextUtils.isEmpty(supplierString)) {
+        if (nameString.isEmpty() || quantityString.isEmpty() || priceString.isEmpty()
+                || supplierString.isEmpty() || imageForDbSave == null) {
+            Toast.makeText(this, getResources().getString(R.string.fieldsUncompleted), Toast.LENGTH_LONG).show();
+            return;
+        } else if (!hasEmailPattern(supplierString)) {
+            Toast.makeText(this, getResources().getString(R.string.validEmailAdressMessage), Toast.LENGTH_LONG).show();
             return;
         }
 
@@ -195,6 +238,7 @@ public class ProductDetailsActivity extends AppCompatActivity implements LoaderM
                 Toast.makeText(this, getString(R.string.editor_insert_product_failed), Toast.LENGTH_SHORT).show();
             } else {
                 Toast.makeText(this, getString(R.string.editor_insert_product_successful), Toast.LENGTH_SHORT).show();
+                finish();
             }
         } else {
             int rowsAffected = getContentResolver().update(mCurrentProductUri, values, null, null);
@@ -202,7 +246,18 @@ public class ProductDetailsActivity extends AppCompatActivity implements LoaderM
                 Toast.makeText(this, getString(R.string.editor_update_product_failed), Toast.LENGTH_SHORT).show();
             } else {
                 Toast.makeText(this, getString(R.string.editor_update_product_successful), Toast.LENGTH_SHORT).show();
+                finish();
             }
+        }
+    }
+
+    private boolean hasEmailPattern(String emailToCheck) {
+        Pattern pattern = Pattern.compile("[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\\.[A-Za-z]{2,4}");
+        Matcher emailMatch = pattern.matcher(emailToCheck);
+        if (emailMatch.matches()) {
+            return true;
+        } else {
+            return false;
         }
     }
 
@@ -217,7 +272,6 @@ public class ProductDetailsActivity extends AppCompatActivity implements LoaderM
         switch (item.getItemId()) {
             case R.id.action_save:
                 saveProduct();
-                finish();
                 return true;
 
             case R.id.action_delete:
@@ -312,10 +366,10 @@ public class ProductDetailsActivity extends AppCompatActivity implements LoaderM
                 ProductEntry.COLUMN_PRODUCT_QUANTITY,
                 ProductEntry.COLUMN_PRODUCT_PRICE,
                 ProductEntry.COLUMN_PRODUCT_SUPPLIER};
-                //TODO: have an unexplained error when trying to load the image saved, below line is related
-                //TODO: error message - "Failed to read row 0, column 0 from a CursorWindow which has 0 rows, 6 columns."
-                //TODO: "Make sure the Cursor is initialized correctly before accessing data from it."
-                //ProductEntry.COLUMN_PRODUCT_IMAGE};
+        //TODO: have an unexplained error when trying to load the image saved, below line is related
+        //TODO: error message - "Failed to read row 0, column 0 from a CursorWindow which has 0 rows, 6 columns."
+        //TODO: "Make sure the Cursor is initialized correctly before accessing data from it."
+        //ProductEntry.COLUMN_PRODUCT_IMAGE};
 
         return new CursorLoader(this,   // Parent activity context
                 mCurrentProductUri,     // Query the content URI for the current product
@@ -376,4 +430,6 @@ public class ProductDetailsActivity extends AppCompatActivity implements LoaderM
         mPriceEditText.setText("");
         mSupplierEditText.setText("");
     }
+
+
 }

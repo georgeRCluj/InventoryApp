@@ -19,7 +19,7 @@
     <string name="hint_product_name">Product name</string>
     <string name="hint_product_quantity">Current quantity</string>
     <string name="hint_product_price">Current price</string>
-    <string name="hint_product_supplier">Product supplier</string>
+    <string name="hint_product_supplier">Supplier\'s email</string>
     <string name="hint_product_image">Select product image</string>
     <string name="unit_product_dollars">$</string>
     <string name="unit_product_weight">kg</string>
@@ -33,4 +33,10 @@
     <string name="delete">Delete</string>
     <string name="cancel">Cancel</string>
     <string name="saleButton">Sale</string>
+    <string name="orderEmailSubject">New products order</string>
+    <string name="orderEmailBody">I would like to order the following products:\n\n\n\nThank you,\nKind regards</string>
+    <string name="fieldsUncompleted">Please fill in all the information and upload a product picture</string>
+    <string name="validEmailAdressMessage">Please enter a valid supplier\'s email address</string>
+    <string name="editProduct">Edit prduct</string>
+    <string name="addProduct">Add product</string>
 </resources>

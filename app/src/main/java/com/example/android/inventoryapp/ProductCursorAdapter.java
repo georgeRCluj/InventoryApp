@@ -5,7 +5,6 @@ import android.content.ContentValues;
 import android.content.Context;
 import android.database.Cursor;
 import android.net.Uri;
-import android.text.TextUtils;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -16,17 +15,14 @@ import android.widget.Toast;
 
 import com.example.android.inventoryapp.Data.ProductContract.ProductEntry;
 
-import static android.R.attr.id;
-import static com.example.android.inventoryapp.R.string.saleButton;
-
 public class ProductCursorAdapter extends CursorAdapter {
-    Button saleButton;
-    TextView textViewProductName;
-    TextView textViewProductSummary;
-    int productID;
-    int productQuantity;
-    int productPrice;
-    String productName;
+    private Button saleButton;
+    private TextView textViewProductName;
+    private TextView textViewProductSummary;
+    private int productID;
+    private int productQuantity;
+    private int productPrice;
+    private String productName;
 
     public ProductCursorAdapter(Context context, Cursor c) {
         super(context, c, 0);

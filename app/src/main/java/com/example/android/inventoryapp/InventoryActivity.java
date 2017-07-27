@@ -2,12 +2,10 @@ package com.example.android.inventoryapp;
 
 import android.app.LoaderManager;
 import android.content.ContentUris;
-import android.content.ContentValues;
 import android.content.CursorLoader;
 import android.content.Intent;
 import android.content.Loader;
 import android.database.Cursor;
-import android.graphics.Bitmap;
 import android.net.Uri;
 import android.os.Bundle;
 import android.support.design.widget.FloatingActionButton;
@@ -21,14 +19,12 @@ import android.widget.ListView;
 
 import com.example.android.inventoryapp.Data.ProductContract.ProductEntry;
 
-import java.io.ByteArrayOutputStream;
-
 public class InventoryActivity extends AppCompatActivity implements LoaderManager.LoaderCallbacks<Cursor> {
 
     private static final int PRODUCT_LOADER = 0;
     ProductCursorAdapter mCursorAdapter;
     ListView productListView;
-    FloatingActionButton fab;
+    FloatingActionButton addButton;
     View emptyView;
 
     @Override
@@ -42,14 +38,14 @@ public class InventoryActivity extends AppCompatActivity implements LoaderManage
 
     private void initializeUiComponents() {
         setContentView(R.layout.activity_inventory);
-        fab = (FloatingActionButton) findViewById(R.id.fab);
+        addButton = (FloatingActionButton) findViewById(R.id.fab);
         productListView = (ListView) findViewById(R.id.text_view_product);
         emptyView = findViewById(R.id.empty_view);
         productListView.setEmptyView(emptyView);
     }
 
     private void setListenerOnAddProductButton() {
-        fab.setOnClickListener(new View.OnClickListener() {
+        addButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
                 Intent intent = new Intent(InventoryActivity.this, ProductDetailsActivity.class);
@@ -77,16 +73,6 @@ public class InventoryActivity extends AppCompatActivity implements LoaderManage
         getLoaderManager().initLoader(PRODUCT_LOADER, null, this);
     }
 
-    private void insertDummyProduct() {
-        ContentValues values = new ContentValues();
-        values.put(ProductEntry.COLUMN_PRODUCT_NAME, "Oranges");
-        values.put(ProductEntry.COLUMN_PRODUCT_QUANTITY, 5);
-        values.put(ProductEntry.COLUMN_PRODUCT_PRICE, 3);
-        values.put(ProductEntry.COLUMN_PRODUCT_SUPPLIER, "Oranges Supplier Inc.");
-
-        Uri newUri = getContentResolver().insert(ProductEntry.CONTENT_URI, values);
-    }
-
     @Override
     public boolean onCreateOptionsMenu(Menu menu) {
         getMenuInflater().inflate(R.menu.menu_inventory, menu);
@@ -96,9 +82,6 @@ public class InventoryActivity extends AppCompatActivity implements LoaderManage
     @Override
     public boolean onOptionsItemSelected(MenuItem item) {
         switch (item.getItemId()) {
-            case R.id.action_insert_dummy_data:
-                insertDummyProduct();
-                return true;
             case R.id.action_delete_all_entries:
                 deleteAllProducts();
                 return true;

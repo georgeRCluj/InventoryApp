@@ -4,6 +4,7 @@
 
     <!-- Common margin value used throughout the app -->
     <dimen name="activity_margin">16dp</dimen>
-    <dimen name="product_image_size">150dp</dimen>
+    <dimen name="buttons_margin">24dp</dimen>
+    <dimen name="product_image_size">130dp</dimen>
 </resources>
 
